@@ -16,7 +16,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Thêm vào file Program.cs
 // Program.cs
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>(); // Singleton cho th?ng kê
-builder.Services.AddScoped<IOrderService, OrderService>();               // Scoped cho nghi?p v? ??t vé
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IEventService, EventService>();               // Scoped cho qu?n lý s? ki?n
 builder.Services.AddScoped<IUserService, UserService>();                 // Scoped cho khách hàng            // T?o m?i m?i Request
 

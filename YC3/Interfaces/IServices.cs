@@ -7,8 +7,3 @@ public interface IStatisticsService
     void AddTickets(int count);
     int GetTotalTickets();
 }
-
-public interface IOrderService
-{
-    Guid PlaceOrder(Guid eventId, List<Guid> seatIds);
-}
