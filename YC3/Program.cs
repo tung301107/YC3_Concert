@@ -19,6 +19,7 @@ builder.Services.AddSingleton<IStatisticsService, StatisticsService>(); // Singl
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IEventService, EventService>();               // Scoped cho qu?n lý s? ki?n
 builder.Services.AddScoped<IUserService, UserService>();                 // Scoped cho khách hàng            // T?o m?i m?i Request
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
