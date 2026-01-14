@@ -102,13 +102,6 @@ public class ConcertController : ControllerBase
         }
     }
 
-    // 5. Quản lý Khách hàng
-    [HttpGet("user/{userId}/history")]
-    public async Task<IActionResult> GetUserHistory(Guid userId)
-    {
-        var user = await _userService.GetUserWithHistoryAsync(userId);
-        return Ok(user);
-    }
 
     // 6. Thống kê
     [HttpGet("stats")]

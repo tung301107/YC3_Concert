@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using YC3.DTO;
 using YC3.Interfaces;
-using YC3.DTO; // Lưu ý trong ảnh của bạn thư mục là DTO (viết hoa)
 
 namespace YC3.Controllers
 {
@@ -9,10 +9,12 @@ namespace YC3.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IUserService _userService; // 1. Thêm khai báo này
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IUserService userService) // 2. Inject vào đây
         {
             _authService = authService;
+            _userService = userService;
         }
 
         [HttpPost("register")]
@@ -40,6 +42,21 @@ namespace YC3.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // 3. Giữ lại hàm này ở ĐÂY (Nơi quản lý User)
+        [HttpGet("user/{userId}/history")]
+        public async Task<IActionResult> GetUserHistory(Guid userId)
+        {
+            try
+            {
+                var user = await _userService.GetUserWithHistoryAsync(userId);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(ex.Message);
             }
         }
     }
