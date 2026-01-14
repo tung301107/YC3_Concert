@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using YC3.DTO;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using YC3.Interfaces;
+using YC3.DTO;
 
 namespace YC3.Controllers
 {
@@ -9,9 +11,9 @@ namespace YC3.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        private readonly IUserService _userService; // 1. Thêm khai báo này
+        private readonly IUserService _userService;
 
-        public AuthController(IAuthService authService, IUserService userService) // 2. Inject vào đây
+        public AuthController(IAuthService authService, IUserService userService)
         {
             _authService = authService;
             _userService = userService;
@@ -36,8 +38,8 @@ namespace YC3.Controllers
         {
             try
             {
-                var data = await _authService.Login(request);
-                return Ok(new { success = true, message = "Đăng nhập thành công", data });
+                var result = await _authService.Login(request);
+                return Ok(new { success = true, message = "Đăng nhập thành công", data = result });
             }
             catch (Exception ex)
             {
@@ -45,18 +47,25 @@ namespace YC3.Controllers
             }
         }
 
-        // 3. Giữ lại hàm này ở ĐÂY (Nơi quản lý User)
-        [HttpGet("user/{userId}/history")]
-        public async Task<IActionResult> GetUserHistory(Guid userId)
+        // Chức năng tự động lấy UserId từ Token để xem lịch sử
+        [Authorize]
+        [HttpGet("my-history")]
+        public async Task<IActionResult> GetMyHistory()
         {
             try
             {
-                var user = await _userService.GetUserWithHistoryAsync(userId);
-                return Ok(user);
+                // Lấy UserId từ Claims trong Token
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+
+                var userId = Guid.Parse(userIdStr);
+                var history = await _userService.GetUserWithHistoryAsync(userId);
+
+                return Ok(history);
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

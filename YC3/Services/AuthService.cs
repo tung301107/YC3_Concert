@@ -1,16 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
-using YC3.Models;
-using YC3.Data; // Để nhận diện ApplicationDbContext
-using YC3.DTO;  // Để nhận diện LoginDto và RegisterDto
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using YC3.Data;
+using YC3.DTO;
 using YC3.Interfaces;
-using BCrypt.Net; // Cần cài package BCrypt.Net-Next
+using YC3.Models;
 
 namespace YC3.Services
 {
     public class AuthService : IAuthService
     {
-        // Đã đổi từ MyDbContext thành ApplicationDbContext theo đúng ảnh của bạn
         private readonly ApplicationDbContext _context;
+        private readonly string _jwtSecret = "123456789";
 
         public AuthService(ApplicationDbContext context)
         {
@@ -26,7 +29,6 @@ namespace YC3.Services
             {
                 UserId = Guid.NewGuid(),
                 Username = dto.Username,
-                // Mã hóa mật khẩu
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Name = dto.Name,
                 Email = dto.Email,
@@ -39,21 +41,30 @@ namespace YC3.Services
 
         public async Task<object> Login(LoginDto dto)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
 
-            // Kiểm tra mật khẩu bằng hàm Verify
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+                throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
+
+            // Tạo JWT Token
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_jwtSecret);
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                throw new Exception("Tên đăng nhập hoặc mật khẩu không chính xác.");
-            }
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                    new Claim(ClaimTypes.Name, user.Username)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
 
             return new
             {
-                user.UserId,
-                user.Username,
-                user.Name,
-                user.Email
+                Token = tokenHandler.WriteToken(token),
+                User = new { user.UserId, user.Username, user.Name }
             };
         }
     }
