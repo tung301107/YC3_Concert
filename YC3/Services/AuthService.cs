@@ -13,7 +13,8 @@ namespace YC3.Services
     public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _context;
-        private readonly string _jwtSecret = "123456789";
+        // Đảm bảo chuỗi này khớp hệt với chuỗi ở Program.cs
+        private readonly string _jwtSecret = "DayLaChuoiBiMatSieuCapVip12345678";
 
         public AuthService(ApplicationDbContext context)
         {

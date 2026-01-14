@@ -5,7 +5,6 @@ using YC3.Interfaces;
 using YC3.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -16,7 +15,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-var key = Encoding.ASCII.GetBytes("Chuoi_Bi_Mat_Sieu_Cap_Vip_123456789"); // Độ dài tối thiểu 32 ký tự
+// Thay đổi chuỗi này thành ít nhất 16-32 ký tự
+var key = Encoding.ASCII.GetBytes("DayLaChuoiBiMatSieuCapVip12345678");
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
