@@ -1,46 +1,66 @@
-﻿using YC3.Data;  
+﻿using Microsoft.EntityFrameworkCore;
+using YC3.Data;
 using YC3.Interfaces;
 using YC3.Models;
-using Microsoft.EntityFrameworkCore; // Quan trọng để dùng được .Include() và .ToListAsync()
 
-namespace YC3.Services;
-
-public class OrderService : IOrderService
+namespace YC3.Services
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IStatisticsService _statsService;
-
-    public OrderService(ApplicationDbContext context, IStatisticsService statsService)
+    public class OrderService : IOrderService
     {
-        _context = context;
-        _statsService = statsService;
-    }
+        private readonly ApplicationDbContext _context;
+        private readonly IStatisticsService _statsService;
 
-    public Guid PlaceOrder(Guid eventId, List<Guid> seatIds)
-    {
-        // Kiểm tra ghế còn trống không trong DB
-        var availableSeats = _context.Seats
-            .Where(s => seatIds.Contains(s.SeatId) && s.IsAvailable && s.EventId == eventId)
-            .ToList();
-
-        if (availableSeats.Count != seatIds.Count)
-            throw new Exception("Một số ghế đã bị đặt hoặc không tồn tại.");
-
-        var orderId = Guid.NewGuid();
-        foreach (var seat in availableSeats)
+        public OrderService(ApplicationDbContext context, IStatisticsService statsService)
         {
-            seat.IsAvailable = false; // Đánh dấu đã đặt
-            _context.Tickets.Add(new Ticket
-            {
-                TicketId = Guid.NewGuid(),
-                OrderId = orderId,
-                SeatId = seat.SeatId
-            });
+            _context = context;
+            _statsService = statsService;
         }
 
-        _context.SaveChanges(); // Lưu vào SQL Server
-        _statsService.AddTickets(seatIds.Count); // Cập nhật Singleton
+        public async Task<Guid> PlaceOrderAsync(Guid userId, Guid eventId, List<Guid> seatIds)
+        {
+            // 1. Kiểm tra danh sách ghế trống bằng cách truy vấn database bất đồng bộ
+            var availableSeats = await _context.Seats
+                .Where(s => seatIds.Contains(s.SeatId) && s.IsAvailable && s.EventId == eventId)
+                .ToListAsync();
 
-        return orderId;
+            // Kiểm tra nếu số lượng ghế tìm thấy không khớp với số lượng ghế yêu cầu
+            if (availableSeats.Count != seatIds.Count)
+            {
+                throw new Exception("Một số ghế đã bị đặt hoặc không tồn tại.");
+            }
+
+            var orderId = Guid.NewGuid();
+
+            // 2. Tạo bản ghi Order mới (Sử dụng CreatedAt để khớp với Model Order.cs của bạn)
+            var newOrder = new Order
+            {
+                OrderId = orderId,
+                UserId = userId,
+                CreatedAt = DateTime.Now // Đã sửa từ OrderDate thành CreatedAt để hết lỗi CS0117
+            };
+
+            _context.Orders.Add(newOrder);
+
+            // 3. Cập nhật trạng thái từng ghế và tạo vé (Ticket) tương ứng
+            foreach (var seat in availableSeats)
+            {
+                seat.IsAvailable = false; // Đánh dấu ghế không còn trống
+
+                _context.Tickets.Add(new Ticket
+                {
+                    TicketId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    SeatId = seat.SeatId
+                });
+            }
+
+            // 4. Lưu tất cả thay đổi vào SQL Server trong một giao dịch duy nhất
+            await _context.SaveChangesAsync();
+
+            // 5. Cập nhật thống kê vào dịch vụ Singleton
+            _statsService.AddTickets(seatIds.Count);
+
+            return orderId;
+        }
     }
 }
