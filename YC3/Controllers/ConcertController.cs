@@ -82,25 +82,7 @@ public class ConcertController : ControllerBase
         return Ok(seats);
     }
 
-    // 4. Quản lý Đặt vé
-    [HttpPost("book")]
-    public async Task<IActionResult> BookTickets([FromBody] BookingRequestDto request)
-    {
-        try
-        {
-            var orderId = await _orderService.PlaceOrderAsync(request.UserId, request.EventId, request.SelectedSeatIds);
-            return Ok(new
-            {
-                OrderId = orderId,
-                Message = "Đặt vé thành công!",
-                CurrentTotalSold = _statsService.GetTotalTickets()
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { Message = ex.Message });
-        }
-    }
+
 
 
     // 6. Thống kê

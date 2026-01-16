@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-
+builder.Services.AddTransient<IPriceCalculator, PriceCalculator>();
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IEventService, EventService>();
