@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using YC3.Interfaces;
 using YC3.DTO;
 
@@ -47,20 +45,14 @@ namespace YC3.Controllers
             }
         }
 
-        // Chức năng tự động lấy UserId từ Token để xem lịch sử
-        [Authorize]
-        [HttpGet("my-history")]
-        public async Task<IActionResult> GetMyHistory()
+        // ĐÃ XÓA [Authorize]
+        // API này nhận userId trực tiếp từ URL: api/auth/my-history/{guid}
+        [HttpGet("my-history/{userId}")]
+        public async Task<IActionResult> GetMyHistory(Guid userId)
         {
             try
             {
-                // Lấy UserId từ Claims trong Token
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
-
-                var userId = Guid.Parse(userIdStr);
                 var history = await _userService.GetUserWithHistoryAsync(userId);
-
                 return Ok(history);
             }
             catch (Exception ex)

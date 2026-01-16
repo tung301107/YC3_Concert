@@ -1,8 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.EntityFrameworkCore;
 using YC3.Data;
 using YC3.DTO;
 using YC3.Interfaces;
@@ -13,8 +9,6 @@ namespace YC3.Services
     public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _context;
-        // Đảm bảo chuỗi này khớp hệt với chuỗi ở Program.cs
-        private readonly string _jwtSecret = "DayLaChuoiBiMatSieuCapVip12345678";
 
         public AuthService(ApplicationDbContext context)
         {
@@ -47,24 +41,9 @@ namespace YC3.Services
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
 
-            // Tạo JWT Token
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtSecret);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username)
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
+            // CHỈ TRẢ VỀ THÔNG TIN USER, KHÔNG TẠO TOKEN
             return new
             {
-                Token = tokenHandler.WriteToken(token),
                 User = new { user.UserId, user.Username, user.Name }
             };
         }
