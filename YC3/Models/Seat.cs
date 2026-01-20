@@ -1,15 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace YC3.Models
+﻿namespace YC3.Models
 {
     public class Seat
     {
-        [Key]
         public Guid SeatId { get; set; }
-        public string RowName { get; set; } = string.Empty;
+        public string RowName { get; set; }
         public int SeatNumber { get; set; }
-        public bool IsAvailable { get; set; } = true;
-        public decimal Price { get; set; } // Thêm giá cho từng ghế
+        public bool IsAvailable { get; set; }
+        public decimal Price { get; set; } // <-- QUAN TRỌNG: Thêm trường này
         public Guid EventId { get; set; }
     }
 }

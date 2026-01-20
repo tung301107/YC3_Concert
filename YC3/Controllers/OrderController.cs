@@ -44,11 +44,11 @@ namespace YC3.Controllers
                 var totalAmount = _priceCalculator.CalculateTotal(selectedSeats.Select(s => s.Price));
 
                 // 3. Thực hiện đặt đơn hàng qua Service
+                // Thực hiện đặt đơn hàng qua Service (Bỏ tham số totalAmount)
                 var orderId = await _orderService.PlaceOrderAsync(
                     request.UserId,
                     request.EventId,
-                    request.SelectedSeatIds,
-                    totalAmount // Truyền thêm tổng tiền
+                    request.SelectedSeatIds
                 );
 
                 // 4. Cập nhật thống kê (Singleton)
