@@ -16,11 +16,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 builder.Services.AddTransient<IPriceCalculator, PriceCalculator>();
-builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+// Đăng ký Singleton để đếm lượt login toàn hệ thống
+builder.Services.AddSingleton<ILoginTracker, LoginTracker>();
+
 
 var app = builder.Build();
 

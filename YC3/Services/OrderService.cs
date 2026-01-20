@@ -8,80 +8,74 @@ namespace YC3.Services
     public class OrderService : IOrderService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IStatisticsService _statsService;
+        private readonly IPriceCalculator _priceCalculator; // Dịch vụ Transient
 
-        public OrderService(ApplicationDbContext context, IStatisticsService statsService)
+        public OrderService(ApplicationDbContext context, IPriceCalculator priceCalculator)
         {
             _context = context;
-            _statsService = statsService;
+            _priceCalculator = priceCalculator;
         }
 
         public async Task<Guid> PlaceOrderAsync(Guid userId, Guid eventId, List<Guid> seatIds)
         {
-            // Sử dụng Transaction để đảm bảo nếu lỗi ở bất kỳ bước nào, dữ liệu sẽ không bị sai lệch
+            // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // 1. Lấy thông tin ghế từ DB (Bao gồm cả Giá vé để tính toán)
+                // 1. Lấy thông tin ghế và kiểm tra tính khả dụng
                 var availableSeats = await _context.Seats
                     .Where(s => seatIds.Contains(s.SeatId) && s.IsAvailable && s.EventId == eventId)
                     .ToListAsync();
 
-                // Kiểm tra xem số lượng ghế tìm thấy có khớp với số lượng yêu cầu không
                 if (availableSeats.Count != seatIds.Count)
                 {
-                    throw new Exception("Một số ghế đã bị đặt bởi người khác hoặc không tồn tại.");
+                    throw new Exception("Một số ghế đã bị đặt hoặc không tồn tại trong sự kiện này.");
                 }
 
-                // 2. Tự tính tổng tiền trên Server để đảm bảo an toàn
-                decimal totalAmount = availableSeats.Sum(s => s.Price);
+                // 2. Sử dụng Transient PriceCalculator để tính tổng tiền (An toàn hơn từ Server)
+                decimal totalAmount = _priceCalculator.CalculateTotal(availableSeats.Select(s => s.Price));
 
                 var orderId = Guid.NewGuid();
 
-                // 3. Tạo Order mới
+                // 3. Tạo đối tượng Order
                 var newOrder = new Order
                 {
                     OrderId = orderId,
                     UserId = userId,
-                    CreatedAt = DateTime.UtcNow, // Nên dùng UtcNow để đồng bộ thời gian
+                    CreatedAt = DateTime.UtcNow,
                     TotalAmount = totalAmount,
                     Tickets = new List<Ticket>()
                 };
 
-                // 4. Xử lý từng ghế: Cập nhật trạng thái và tạo Ticket
+                // 4. Duyệt qua từng ghế để đánh dấu đã đặt và tạo vé chi tiết
                 foreach (var seat in availableSeats)
                 {
-                    // Đánh dấu ghế không còn trống
-                    seat.IsAvailable = false;
+                    seat.IsAvailable = false; // Chặn người khác đặt ghế này
 
-                    // Tạo bản ghi vé chi tiết
                     newOrder.Tickets.Add(new Ticket
                     {
                         TicketId = Guid.NewGuid(),
                         OrderId = orderId,
                         SeatId = seat.SeatId,
-                        PriceAtBooking = seat.Price // Lưu lại giá lúc mua để làm hóa đơn
+                        PriceAtBooking = seat.Price // Lưu lại giá gốc tại thời điểm mua
                     });
                 }
 
-                // 5. Lưu toàn bộ vào Database
+                // 5. Lưu vào Database
                 _context.Orders.Add(newOrder);
                 await _context.SaveChangesAsync();
 
-                // 6. Cập nhật thống kê hệ thống
-                _statsService.AddTickets(seatIds.Count);
-
-                // Hoàn tất Transaction
+                // 6. Hoàn tất giao dịch
                 await transaction.CommitAsync();
 
                 return orderId;
             }
             catch (Exception ex)
             {
-                // Nếu có lỗi, hủy bỏ mọi thay đổi trong DB
+                // Nếu có bất kỳ lỗi nào, hoàn tác mọi thay đổi trong DB
                 await transaction.RollbackAsync();
-                throw new Exception($"Đặt vé thất bại: {ex.Message}");
+                throw new Exception($"Lỗi quá trình đặt vé: {ex.Message}");
             }
         }
     }

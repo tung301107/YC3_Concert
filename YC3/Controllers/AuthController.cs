@@ -10,11 +10,13 @@ namespace YC3.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IUserService _userService;
+        private readonly ILoginTracker _loginTracker; // Inject Singleton
 
-        public AuthController(IAuthService authService, IUserService userService)
+        public AuthController(IAuthService authService, IUserService userService, ILoginTracker loginTracker)
         {
             _authService = authService;
             _userService = userService;
+            _loginTracker = loginTracker;
         }
 
         [HttpPost("register")]
@@ -37,6 +39,10 @@ namespace YC3.Controllers
             try
             {
                 var result = await _authService.Login(request);
+
+                // TÁC DỤNG SINGLETON: Mỗi lần login thành công, cộng thêm 1 vào biến tổng trong RAM
+                _loginTracker.TrackLogin();
+
                 return Ok(new { success = true, message = "Đăng nhập thành công", data = result });
             }
             catch (Exception ex)
@@ -45,8 +51,6 @@ namespace YC3.Controllers
             }
         }
 
-        // ĐÃ XÓA [Authorize]
-        // API này nhận userId trực tiếp từ URL: api/auth/my-history/{guid}
         [HttpGet("my-history/{userId}")]
         public async Task<IActionResult> GetMyHistory(Guid userId)
         {

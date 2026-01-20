@@ -11,13 +11,13 @@ namespace YC3.Controllers
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
-        private readonly IStatisticsService _statsService;
+        private readonly ILoginTracker _statsService;
         private readonly IPriceCalculator _priceCalculator; // Inject Transient
         private readonly ApplicationDbContext _context;
 
         public OrderController(
             IOrderService orderService,
-            IStatisticsService statsService,
+            ILoginTracker statsService,
             IPriceCalculator priceCalculator,
             ApplicationDbContext context)
         {
@@ -51,8 +51,7 @@ namespace YC3.Controllers
                     request.SelectedSeatIds
                 );
 
-                // 4. Cập nhật thống kê (Singleton)
-                _statsService.AddTickets(selectedSeats.Count);
+
 
                 return Ok(new
                 {

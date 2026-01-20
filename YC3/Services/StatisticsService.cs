@@ -1,20 +1,51 @@
-﻿using YC3.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
 using YC3.Data;
-namespace YC3.Services;
+using YC3.Interfaces;
 
-public class StatisticsService : IStatisticsService
+namespace YC3.Services
 {
-    // Dictionary để lưu: TicketId -> Số lần được truy vấn (ví dụ)
-    private readonly Dictionary<Guid, int> _ticketAccessCount = new();
-    private int _totalTicketsSold = 0;
-
-    public void AddTickets(int count) => _totalTicketsSold += count;
-    public int GetTotalTickets() => _totalTicketsSold;
-
-    public void IncrementTicketView(Guid ticketId)
+    public class StatisticsService : IStatisticsService
     {
-        if (!_ticketAccessCount.ContainsKey(ticketId))
-            _ticketAccessCount[ticketId] = 0;
-        _ticketAccessCount[ticketId]++;
+        private readonly ApplicationDbContext _context;
+
+        public StatisticsService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<object> GetDetailedStatsAsync()
+        {
+            // Truy vấn danh sách sự kiện kèm theo tính toán thống kê từ danh sách ghế
+            var stats = await _context.Events
+                .Select(e => new
+                {
+                    EventId = e.Id,
+                    ConcertName = e.Name,
+                    DateTime = e.DateTime,
+                    // Đếm số ghế có IsAvailable = false
+                    TicketsSold = e.Seats.Count(s => !s.IsAvailable),
+                    // Tổng tiền từ các ghế đã bán
+                    TotalRevenue = e.Seats.Where(s => !s.IsAvailable).Sum(s => s.Price),
+                    TotalSeats = e.TotalSeats,
+                    // Tính tỷ lệ lấp đầy
+                    OccupancyRate = e.TotalSeats > 0
+                        ? (double)e.Seats.Count(s => !s.IsAvailable) / e.TotalSeats * 100
+                        : 0
+                })
+                .ToListAsync();
+
+            return new
+            {
+                GeneratedAt = DateTime.Now,
+                TotalSystemRevenue = stats.Sum(s => s.TotalRevenue),
+                TotalSystemTicketsSold = stats.Sum(s => s.TicketsSold),
+                DetailsPerConcert = stats
+            };
+        }
+
+        // Triển khai các phương thức từ Interface để đảm bảo không lỗi biên dịch
+        public void AddTickets(int count) { /* Không cần thiết vì đã truy vấn trực tiếp DB */ }
+
+        public int GetTotalTickets() => _context.Seats.Count(s => !s.IsAvailable);
     }
 }
