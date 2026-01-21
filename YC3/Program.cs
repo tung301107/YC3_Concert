@@ -21,7 +21,6 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-// Đăng ký Singleton để đếm lượt login toàn hệ thống
 builder.Services.AddSingleton<ILoginTracker, LoginTracker>();
 
 

@@ -10,7 +10,7 @@ namespace YC3.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IUserService _userService;
-        private readonly ILoginTracker _loginTracker; // Inject Singleton
+        private readonly ILoginTracker _loginTracker; 
 
         public AuthController(IAuthService authService, IUserService userService, ILoginTracker loginTracker)
         {
